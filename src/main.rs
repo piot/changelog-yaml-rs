@@ -451,9 +451,11 @@ fn main() {
             }
         }
 
+        if let Some(repos) = &deserialized.repos {
+
         if let Some(dependency_repos) = release.repos {
             for (repo_name, changes_in_repo) in dependency_repos {
-                let info = &deserialized.repos[&repo_name];
+                let info = &repos[&repo_name];
                 let repo_url = format!("{}{}", GITHUB_URL_PREFIX, info.repo);
                 let markdown_link = format!("[{}]({})", repo_name, repo_url);
                 let mut description: String = "".to_string();
@@ -469,5 +471,8 @@ fn main() {
                 print_changes(&info.repo, changes_in_repo, &formatter);
             }
         }
+    } else {
+            return;
+    }
     }
 }

@@ -93,5 +93,5 @@ pub struct DependencyRepoInfo {
 pub struct Document {
     pub repo: String,
     pub releases: IndexMap<String, Release>,
-	pub repos: HashMap<String, DependencyRepoInfo>,
+	pub repos: Option<HashMap<String, DependencyRepoInfo>>,
 }
