@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 mod yaml;
+
 use regex::Regex;
 use std::io;
 
@@ -302,9 +303,9 @@ fn info_from_category_name(name: CategoryType) -> CategoryInfo {
             },
         ),
     ]
-    .iter()
-    .cloned()
-    .collect();
+        .iter()
+        .cloned()
+        .collect();
 
     let info = lookup.get(&name).unwrap_or_else(|| {
         panic!("unknown '{:?}'", name);
@@ -324,7 +325,7 @@ fn print_line(
     if change_type == CategoryType::Breaking {
         println!("* :{}:[{}] {}", info.icon, &info.description, replaced);
     } else {
-    println!("* :{}: {}", info.icon, replaced);
+        println!("* :{}: {}", info.icon, replaced);
     }
 }
 
@@ -342,7 +343,6 @@ fn print_optional_list(
 }
 
 
-
 fn print_changes(repo_url: &str, changes: yaml::Changes, formatter: &impl LinkFormatter) {
     print_optional_list(
         repo_url,
@@ -350,14 +350,18 @@ fn print_changes(repo_url: &str, changes: yaml::Changes, formatter: &impl LinkFo
         changes.unreleased,
         formatter,
     );
+
     print_optional_list(
         repo_url,
         CategoryType::Breaking,
         changes.breaking,
         formatter,
     );
+
     print_optional_list(repo_url, CategoryType::Added, changes.added, formatter);
+
     print_optional_list(repo_url, CategoryType::Fixed, changes.fixed, formatter);
+
     print_optional_list(
         repo_url,
         CategoryType::Workaround,
@@ -366,6 +370,7 @@ fn print_changes(repo_url: &str, changes: yaml::Changes, formatter: &impl LinkFo
     );
 
     print_optional_list(repo_url, CategoryType::Changed, changes.changed, formatter);
+
     print_optional_list(repo_url, CategoryType::Removed, changes.removed, formatter);
 
     print_optional_list(
@@ -374,7 +379,9 @@ fn print_changes(repo_url: &str, changes: yaml::Changes, formatter: &impl LinkFo
         changes.improved,
         formatter,
     );
+
     print_optional_list(repo_url, CategoryType::Docs, changes.docs, formatter);
+
     print_optional_list(repo_url, CategoryType::Tests, changes.tests, formatter);
 
     print_optional_list(
@@ -383,6 +390,7 @@ fn print_changes(repo_url: &str, changes: yaml::Changes, formatter: &impl LinkFo
         changes.refactored,
         formatter,
     );
+
     print_optional_list(
         repo_url,
         CategoryType::Deprecated,
@@ -396,7 +404,9 @@ fn print_changes(repo_url: &str, changes: yaml::Changes, formatter: &impl LinkFo
         changes.experimental,
         formatter,
     );
+
     print_optional_list(repo_url, CategoryType::Noted, changes.noted, formatter);
+
     print_optional_list(
         repo_url,
         CategoryType::Performance,
@@ -435,6 +445,7 @@ fn main() {
             "\n## :bookmark: [{}]({}) ({})\n",
             release_version, link_to_version, release.date
         );
+
         if let Some(notice) = release.notice {
             println!("{}", replace_notice(notice.trim()));
         }
@@ -452,27 +463,26 @@ fn main() {
         }
 
         if let Some(repos) = &deserialized.repos {
+            if let Some(dependency_repos) = release.repos {
+                for (repo_name, changes_in_repo) in dependency_repos {
+                    let info = &repos[&repo_name];
+                    let repo_url = format!("{}{}", GITHUB_URL_PREFIX, info.repo);
+                    let markdown_link = format!("[{}]({})", repo_name, repo_url);
+                    let mut description: String = "".to_string();
 
-        if let Some(dependency_repos) = release.repos {
-            for (repo_name, changes_in_repo) in dependency_repos {
-                let info = &repos[&repo_name];
-                let repo_url = format!("{}{}", GITHUB_URL_PREFIX, info.repo);
-                let markdown_link = format!("[{}]({})", repo_name, repo_url);
-                let mut description: String = "".to_string();
+                    if !info.description.is_empty() {
+                        description = format!(" - {}", info.description);
+                    }
 
-                if !info.description.is_empty() {
-                    description = format!(" - {}", info.description);
+                    let complete_line = format!("{}{}", markdown_link, description);
+
+                    println!("\n### {}\n", complete_line.trim());
+
+                    print_changes(&info.repo, changes_in_repo, &formatter);
                 }
-
-                let complete_line = format!("{}{}", markdown_link, description);
-
-                println!("\n### {}\n", complete_line.trim());
-
-                print_changes(&info.repo, changes_in_repo, &formatter);
             }
-        }
-    } else {
+        } else {
             return;
-    }
+        }
     }
 }
