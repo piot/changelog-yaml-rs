@@ -72,15 +72,26 @@ pub struct Section {
     pub changes: Changes,
 }
 
+
 #[derive(Debug, PartialEq, Deserialize)]
 pub struct Release {
     pub date: String,
     pub notice: Option<String>,
-    pub sections: IndexMap<String, Section>,
+	pub repos: Option<IndexMap<String, Changes>>,
+    pub sections: Option<IndexMap<String, Section>>,
 }
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct DependencyRepoInfo {
+    pub repo: String,
+	pub name: String,
+	pub description: String,
+}
+
 
 #[derive(Debug, PartialEq, Deserialize)]
 pub struct Document {
     pub repo: String,
-    pub releases: HashMap<String, Release>,
+    pub releases: IndexMap<String, Release>,
+	pub repos: HashMap<String, DependencyRepoInfo>,
 }

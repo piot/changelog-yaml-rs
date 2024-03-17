@@ -216,14 +216,38 @@ fn main() {
             println!("{}", notice.trim());
         }
 
-        for (section_name, section) in release.sections {
-            println!("\n### {}\n", section_name.trim());
+        if let Some(sections) = release.sections {
+            for (section_name, section) in sections {
+                println!("\n### {}\n", section_name.trim());
 
-            if let Some(notice) = section.notice {
-                println!("{}\n", notice.trim());
+                if let Some(notice) = section.notice {
+                    println!("{}\n", notice.trim());
+                }
+
+                print_changes(section.changes);
             }
+        }
 
-            print_changes(section.changes);
+        const GITHUB_URL_PREFIX: &str = "https://github.com/";
+
+        if let Some(dependency_repos) = release.repos {
+            for (repo_name, changes_in_repo) in dependency_repos {
+                let info = &deserialized.repos[&repo_name];
+                let repo_url = format!("{}{}", GITHUB_URL_PREFIX, info.repo);
+                let markdown_link = format!("[{}]({})", info.name, repo_url);
+                let mut description :String= "".to_string();
+
+                if info.description != "" {
+                    description = format!(" - {}", info.description);
+                }
+
+                let complete_line = format!("{}{}", markdown_link, description);
+
+                println!("\n### {}\n", complete_line.trim());
+
+
+                print_changes(changes_in_repo);
+            }
         }
     }
 }
