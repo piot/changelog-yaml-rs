@@ -92,13 +92,11 @@ trait LinkFormatter {
     fn link(&self, name: &str, link: &str) -> String;
 }
 
-
 impl LinkFormatter for MarkdownFormatter {
     fn link(&self, name: &str, link: &str) -> String {
         format!("[{}]({})", name, link)
     }
 }
-
 
 fn replace_pull_request_link(
     line: &str,
@@ -322,11 +320,20 @@ fn print_line(
     formatter: &impl LinkFormatter,
 ) {
     let replaced = replace_line(s.trim(), repo_url, formatter);
-    let info = info_from_category_name(change_type);
+    let info = info_from_category_name(change_type.clone());
+    if change_type == CategoryType::Breaking {
+        println!("* :{}:[{}] {}", info.icon, &info.description, replaced);
+    } else {
     println!("* :{}: {}", info.icon, replaced);
+    }
 }
 
-fn print_optional_list(repo_url: &str, change_type: CategoryType, list: Option<Vec<String>>, formatter: &impl LinkFormatter) {
+fn print_optional_list(
+    repo_url: &str,
+    change_type: CategoryType,
+    list: Option<Vec<String>>,
+    formatter: &impl LinkFormatter,
+) {
     if let Some(items) = list {
         for item in items {
             print_line(repo_url, change_type.clone(), item, formatter)
@@ -334,30 +341,83 @@ fn print_optional_list(repo_url: &str, change_type: CategoryType, list: Option<V
     }
 }
 
+
+
 fn print_changes(repo_url: &str, changes: yaml::Changes, formatter: &impl LinkFormatter) {
+    print_optional_list(
+        repo_url,
+        CategoryType::Unreleased,
+        changes.unreleased,
+        formatter,
+    );
+    print_optional_list(
+        repo_url,
+        CategoryType::Breaking,
+        changes.breaking,
+        formatter,
+    );
     print_optional_list(repo_url, CategoryType::Added, changes.added, formatter);
-    print_optional_list(repo_url, CategoryType::Breaking, changes.breaking, formatter);
-    print_optional_list(repo_url, CategoryType::Changed, changes.changed, formatter);
-    print_optional_list(repo_url, CategoryType::Deprecated, changes.deprecated, formatter);
-    print_optional_list(repo_url, CategoryType::Docs, changes.docs, formatter);
-    print_optional_list(repo_url, CategoryType::Experimental, changes.experimental, formatter);
     print_optional_list(repo_url, CategoryType::Fixed, changes.fixed, formatter);
-    print_optional_list(repo_url, CategoryType::Improved, changes.improved, formatter);
-    print_optional_list(repo_url, CategoryType::Noted, changes.noted, formatter);
-    print_optional_list(repo_url, CategoryType::Performance, changes.performance, formatter);
-    print_optional_list(repo_url, CategoryType::Refactored, changes.refactored, formatter);
+    print_optional_list(
+        repo_url,
+        CategoryType::Workaround,
+        changes.workaround,
+        formatter,
+    );
+
+    print_optional_list(repo_url, CategoryType::Changed, changes.changed, formatter);
     print_optional_list(repo_url, CategoryType::Removed, changes.removed, formatter);
-    print_optional_list(repo_url, CategoryType::Security, changes.security, formatter);
-    print_optional_list(repo_url, CategoryType::Style, changes.style, formatter);
+
+    print_optional_list(
+        repo_url,
+        CategoryType::Improved,
+        changes.improved,
+        formatter,
+    );
+    print_optional_list(repo_url, CategoryType::Docs, changes.docs, formatter);
     print_optional_list(repo_url, CategoryType::Tests, changes.tests, formatter);
-    print_optional_list(repo_url, CategoryType::Unreleased, changes.unreleased, formatter);
-    print_optional_list(repo_url, CategoryType::Workaround, changes.workaround, formatter);
+
+    print_optional_list(
+        repo_url,
+        CategoryType::Refactored,
+        changes.refactored,
+        formatter,
+    );
+    print_optional_list(
+        repo_url,
+        CategoryType::Deprecated,
+        changes.deprecated,
+        formatter,
+    );
+
+    print_optional_list(
+        repo_url,
+        CategoryType::Experimental,
+        changes.experimental,
+        formatter,
+    );
+    print_optional_list(repo_url, CategoryType::Noted, changes.noted, formatter);
+    print_optional_list(
+        repo_url,
+        CategoryType::Performance,
+        changes.performance,
+        formatter,
+    );
+
+    print_optional_list(repo_url, CategoryType::Style, changes.style, formatter);
+
+    print_optional_list(
+        repo_url,
+        CategoryType::Security,
+        changes.security,
+        formatter,
+    );
 }
 
 fn main() {
     let stdin = io::stdin();
     let reader = stdin.lock();
-    let formatter = MarkdownFormatter{};
+    let formatter = MarkdownFormatter {};
 
     eprintln!("Accepting input from stdin");
 
@@ -395,7 +455,7 @@ fn main() {
             for (repo_name, changes_in_repo) in dependency_repos {
                 let info = &deserialized.repos[&repo_name];
                 let repo_url = format!("{}{}", GITHUB_URL_PREFIX, info.repo);
-                let markdown_link = format!("[{}]({})", info.name, repo_url);
+                let markdown_link = format!("[{}]({})", repo_name, repo_url);
                 let mut description: String = "".to_string();
 
                 if !info.description.is_empty() {
