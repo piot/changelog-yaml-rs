@@ -3,9 +3,8 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-use std::fs;
 mod yaml;
-
+use std::io;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CategoryType {
@@ -34,25 +33,120 @@ struct CategoryInfo {
     description: &'static str,
 }
 
-
 fn info_from_category_name(name: CategoryType) -> CategoryInfo {
     let lookup: std::collections::HashMap<CategoryType, CategoryInfo> = [
-        (CategoryType::Added, CategoryInfo { icon: "star2", description: "added" }),
-        (CategoryType::Changed, CategoryInfo { icon: "hammer_and_wrench", description: "changed" }),
-        (CategoryType::Fixed, CategoryInfo { icon: "lady_beetle", description: "fixed" }),
-        (CategoryType::Workaround, CategoryInfo { icon: "see_no_evil", description: "workaround" }),
-        (CategoryType::Performance, CategoryInfo { icon: "zap", description: "performance" }),
-        (CategoryType::Tests, CategoryInfo { icon: "vertical_traffic_light", description: "test" }),
-        (CategoryType::Removed, CategoryInfo { icon: "fire", description: "removed" }),
-        (CategoryType::Improved, CategoryInfo { icon: "art", description: "improved" }),
-        (CategoryType::Breaking, CategoryInfo { icon: "triangular_flag_on_post", description: "breaking" }),
-        (CategoryType::Deprecated, CategoryInfo { icon: "spider_web", description: "deprecated" }),
-        (CategoryType::Refactored, CategoryInfo { icon: "recycle", description: "refactor" }),
-        (CategoryType::Experimental, CategoryInfo { icon: "alembic", description: "experimental" }),
-        (CategoryType::Docs, CategoryInfo { icon: "book", description: "docs" }),
-        (CategoryType::Noted, CategoryInfo { icon: "beetle", description: "known issue" }),
-        (CategoryType::Style, CategoryInfo { icon: "gem", description: "style" }),
-        (CategoryType::Unreleased, CategoryInfo { icon: "soon", description: "unreleased" }),
+        (
+            CategoryType::Added,
+            CategoryInfo {
+                icon: "star2",
+                description: "added",
+            },
+        ),
+        (
+            CategoryType::Changed,
+            CategoryInfo {
+                icon: "hammer_and_wrench",
+                description: "changed",
+            },
+        ),
+        (
+            CategoryType::Fixed,
+            CategoryInfo {
+                icon: "lady_beetle",
+                description: "fixed",
+            },
+        ),
+        (
+            CategoryType::Workaround,
+            CategoryInfo {
+                icon: "see_no_evil",
+                description: "workaround",
+            },
+        ),
+        (
+            CategoryType::Performance,
+            CategoryInfo {
+                icon: "zap",
+                description: "performance",
+            },
+        ),
+        (
+            CategoryType::Tests,
+            CategoryInfo {
+                icon: "vertical_traffic_light",
+                description: "test",
+            },
+        ),
+        (
+            CategoryType::Removed,
+            CategoryInfo {
+                icon: "fire",
+                description: "removed",
+            },
+        ),
+        (
+            CategoryType::Improved,
+            CategoryInfo {
+                icon: "art",
+                description: "improved",
+            },
+        ),
+        (
+            CategoryType::Breaking,
+            CategoryInfo {
+                icon: "triangular_flag_on_post",
+                description: "breaking",
+            },
+        ),
+        (
+            CategoryType::Deprecated,
+            CategoryInfo {
+                icon: "spider_web",
+                description: "deprecated",
+            },
+        ),
+        (
+            CategoryType::Refactored,
+            CategoryInfo {
+                icon: "recycle",
+                description: "refactor",
+            },
+        ),
+        (
+            CategoryType::Experimental,
+            CategoryInfo {
+                icon: "alembic",
+                description: "experimental",
+            },
+        ),
+        (
+            CategoryType::Docs,
+            CategoryInfo {
+                icon: "book",
+                description: "docs",
+            },
+        ),
+        (
+            CategoryType::Noted,
+            CategoryInfo {
+                icon: "beetle",
+                description: "known issue",
+            },
+        ),
+        (
+            CategoryType::Style,
+            CategoryInfo {
+                icon: "gem",
+                description: "style",
+            },
+        ),
+        (
+            CategoryType::Unreleased,
+            CategoryInfo {
+                icon: "soon",
+                description: "unreleased",
+            },
+        ),
     ]
     .iter()
     .cloned()
@@ -67,9 +161,8 @@ fn info_from_category_name(name: CategoryType) -> CategoryInfo {
 
 fn print_line(change_type: CategoryType, s: String) {
     let info = info_from_category_name(change_type);
-    println!("* :{}: {} ", info.icon, s);
+    println!("* :{}: {}", info.icon, s.trim());
 }
-
 
 fn print_optional_list(change_type: CategoryType, list: Option<Vec<String>>) {
     if let Some(items) = list {
@@ -100,12 +193,14 @@ fn print_changes(changes: yaml::Changes) {
 }
 
 fn main() {
-    let file_path = "changelog.yaml";
-    let yaml_str = fs::read_to_string(file_path).expect("could not load file");
+    let stdin = io::stdin();
+    let reader = stdin.lock();
 
-    let deserialized: yaml::Document = serde_yaml::from_str(&yaml_str).unwrap();
+    eprintln!("Accepting input from stdin");
 
-    println!("# Changelog\n");
+    let deserialized: yaml::Document = serde_yaml::from_reader(reader).unwrap();
+
+    println!("# Changelog");
 
     for (release_version, release) in deserialized.releases {
         let link_to_version = format!(
@@ -114,18 +209,18 @@ fn main() {
         );
 
         println!(
-            "# :bookmark: [{}]({}) ({})\n",
+            "\n## :bookmark: [{}]({}) ({})\n",
             release_version, link_to_version, release.date
         );
         if let Some(notice) = release.notice {
-            println!("{}", notice);
+            println!("{}", notice.trim());
         }
 
         for (section_name, section) in release.sections {
-            println!("\n### {}", section_name);
+            println!("\n### {}\n", section_name.trim());
 
             if let Some(notice) = section.notice {
-                println!("\n{}\n", notice);
+                println!("{}\n", notice.trim());
             }
 
             print_changes(section.changes);
