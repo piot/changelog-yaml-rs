@@ -482,7 +482,7 @@ fn main() {
                 }
             }
         } else {
-            return;
+            continue;
         }
     }
 }
