@@ -3,10 +3,19 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-mod yaml;
+use std::{env, io};
 
 use regex::Regex;
-use std::io;
+
+use crate::ascii_doc_formatter::AsciiDocFormatter;
+use crate::formatter::{AdmonitionFormatter, AdmonitionType, EmojiFormatter, HeadingFormatter, LinkFormatter};
+use crate::markdown_github::MarkdownGitHubFormatter;
+use crate::yaml::Document;
+
+mod yaml;
+mod formatter;
+mod markdown_github;
+mod ascii_doc_formatter;
 
 const GITHUB_URL_PREFIX: &str = "https://github.com/";
 
@@ -31,35 +40,6 @@ pub enum CategoryType {
     Workaround,
 }
 
-enum AdmonitionType {
-    Warning,
-    Note,
-    Important,
-}
-
-trait AdmonitionFormatter {
-    fn admonition(&self, ad_type: AdmonitionType, content: &str) -> String;
-}
-
-struct MarkdownFormatter {}
-
-fn admonition_type_to_github_name(admonition_type: AdmonitionType) -> &'static str {
-    match admonition_type {
-        AdmonitionType::Note => "NOTE",
-        AdmonitionType::Important => "IMPORTANT",
-        AdmonitionType::Warning => "WARNING",
-    }
-}
-
-impl AdmonitionFormatter for MarkdownFormatter {
-    fn admonition(&self, admonition_type: AdmonitionType, text: &str) -> String {
-        format!(
-            "> [!{}]\\\n> {}",
-            admonition_type_to_github_name(admonition_type),
-            text
-        )
-    }
-}
 
 fn string_to_admonition_type(name: &str) -> AdmonitionType {
     match name {
@@ -70,7 +50,7 @@ fn string_to_admonition_type(name: &str) -> AdmonitionType {
     }
 }
 
-fn replace_admonition(line: &str, formatter: &impl AdmonitionFormatter) -> String {
+fn replace_admonition<F: AdmonitionFormatter>(line: &str, formatter: &F) -> String {
     let re = Regex::new(r#"(WARNING|TIP|NOTE|IMPORTANT|CAUTION):\s.*"#).unwrap();
     let mut line_to_print = String::new();
     let mut previous_match_position = 0;
@@ -89,20 +69,11 @@ fn replace_admonition(line: &str, formatter: &impl AdmonitionFormatter) -> Strin
     line_to_print
 }
 
-trait LinkFormatter {
-    fn link(&self, name: &str, link: &str) -> String;
-}
-
-impl LinkFormatter for MarkdownFormatter {
-    fn link(&self, name: &str, link: &str) -> String {
-        format!("[{}]({})", name, link)
-    }
-}
 
 fn replace_pull_request_link(
     line: &str,
     repo_short_url: &str,
-    formatter: &impl LinkFormatter,
+    formatter: &dyn LinkFormatter,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let re = Regex::new(r"#\d*").unwrap();
     let mut line_to_print = String::new();
@@ -127,7 +98,7 @@ fn replace_pull_request_link(
 fn replace_commit_hash_link(
     line: &str,
     repo_short_url: &str,
-    formatter: &impl LinkFormatter,
+    formatter: &dyn LinkFormatter,
 ) -> String {
     let re = Regex::new(r"\$[a-f\d]*").unwrap();
     let mut line_to_print = String::new();
@@ -150,7 +121,7 @@ fn replace_commit_hash_link(
     line_to_print
 }
 
-fn replace_at_profile_link(line: &str, formatter: &impl LinkFormatter) -> String {
+fn replace_at_profile_link<F: LinkFormatter>(line: &str, formatter: &F) -> String {
     let re = Regex::new(r"@[\w-]*").unwrap();
     let mut line_to_print = String::new();
     let mut previous_match_position = 0;
@@ -169,17 +140,16 @@ fn replace_at_profile_link(line: &str, formatter: &impl LinkFormatter) -> String
     line_to_print
 }
 
-fn replace_line(line: &str, repo_short_url: &str, formatter: &impl LinkFormatter) -> String {
+fn replace_line<F: LinkFormatter>(line: &str, repo_short_url: &str, formatter: &F) -> String {
     let mut s = replace_at_profile_link(line, formatter);
     s = replace_commit_hash_link(&s, repo_short_url, formatter);
     replace_pull_request_link(&s, repo_short_url, formatter)
-        .expect("should workd to format PR link")
+        .expect("should work to format PR link")
 }
 
-fn replace_notice(line: &str) -> String {
-    let formatter = MarkdownFormatter {};
-    let s = replace_admonition(line, &formatter);
-    replace_at_profile_link(&s, &formatter)
+fn replace_notice<F: AdmonitionFormatter + LinkFormatter>(line: &str, formatter: &F) -> String {
+    let s = replace_admonition(line, formatter);
+    replace_at_profile_link(&s, formatter)
 }
 
 #[derive(Debug, Clone)]
@@ -314,26 +284,26 @@ fn info_from_category_name(name: CategoryType) -> CategoryInfo {
     info.clone()
 }
 
-fn print_line(
+fn print_line<F: LinkFormatter + EmojiFormatter>(
     repo_url: &str,
     change_type: CategoryType,
     s: String,
-    formatter: &impl LinkFormatter,
+    formatter: &F,
 ) {
     let replaced = replace_line(s.trim(), repo_url, formatter);
     let info = info_from_category_name(change_type.clone());
     if change_type == CategoryType::Breaking {
-        println!("* :{}:[{}] {}", info.icon, &info.description, replaced);
+        println!("* {}[{}] {}", formatter.emoji(info.icon), &info.description, replaced);
     } else {
-        println!("* :{}: {}", info.icon, replaced);
+        println!("* {} {}", formatter.emoji(info.icon), replaced);
     }
 }
 
-fn print_optional_list(
+fn print_optional_list<F: LinkFormatter + EmojiFormatter>(
     repo_url: &str,
     change_type: CategoryType,
     list: Option<Vec<String>>,
-    formatter: &impl LinkFormatter,
+    formatter: &F,
 ) {
     if let Some(items) = list {
         for item in items {
@@ -343,7 +313,7 @@ fn print_optional_list(
 }
 
 
-fn print_changes(repo_url: &str, changes: yaml::Changes, formatter: &impl LinkFormatter) {
+fn print_changes<F: LinkFormatter + EmojiFormatter>(repo_url: &str, changes: yaml::Changes, formatter: &F) {
     print_optional_list(
         repo_url,
         CategoryType::Unreleased,
@@ -424,16 +394,8 @@ fn print_changes(repo_url: &str, changes: yaml::Changes, formatter: &impl LinkFo
     );
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let reader = stdin.lock();
-    let formatter = MarkdownFormatter {};
-
-    eprintln!("Accepting input from stdin");
-
-    let deserialized: yaml::Document = serde_yaml::from_reader(reader).unwrap();
-
-    println!("# Changelog");
+fn print_document<F: AdmonitionFormatter + LinkFormatter + HeadingFormatter + EmojiFormatter>(deserialized: Document, formatter: &F) {
+    println!("{}", formatter.heading(1, "Changelog"));
 
     for (release_version, release) in deserialized.releases {
         let link_to_version = format!(
@@ -441,24 +403,25 @@ fn main() {
             deserialized.repo, release_version
         );
 
-        println!(
-            "\n## :bookmark: [{}]({}) ({})\n",
-            release_version, link_to_version, release.date
-        );
+        let heading = format!("{} {} ({})",
+                              formatter.emoji("bookmark"),
+                              formatter.link(&release_version, &link_to_version),
+                              release.date);
+        println!("\n{}\n", formatter.heading(2, &heading));
 
         if let Some(notice) = release.notice {
-            println!("{}", replace_notice(notice.trim()));
+            println!("{}", replace_notice(notice.trim(), formatter));
         }
 
         if let Some(sections) = release.sections {
             for (section_name, section) in sections {
-                println!("\n### {}\n", section_name.trim());
+                println!("\n{}\n", formatter.heading(3, section_name.trim()));
 
                 if let Some(notice) = section.notice {
-                    println!("{}\n", replace_notice(notice.trim()));
+                    println!("{}\n", replace_notice(notice.trim(), formatter));
                 }
 
-                print_changes(&deserialized.repo, section.changes, &formatter);
+                print_changes(&deserialized.repo, section.changes, formatter);
             }
         }
 
@@ -467,22 +430,41 @@ fn main() {
                 for (repo_name, changes_in_repo) in dependency_repos {
                     let info = &repos[&repo_name];
                     let repo_url = format!("{}{}", GITHUB_URL_PREFIX, info.repo);
-                    let markdown_link = format!("[{}]({})", repo_name, repo_url);
+                    let link = formatter.link(&repo_name, &repo_url);
                     let mut description: String = "".to_string();
 
                     if !info.description.is_empty() {
                         description = format!(" - {}", info.description);
                     }
 
-                    let complete_line = format!("{}{}", markdown_link, description);
+                    let complete_line = format!("{}{}", link, description);
 
-                    println!("\n### {}\n", complete_line.trim());
+                    println!("\n{}\n", formatter.heading(3, complete_line.trim()));
 
-                    print_changes(&info.repo, changes_in_repo, &formatter);
+                    print_changes(&info.repo, changes_in_repo, formatter);
                 }
             }
         } else {
             continue;
+        }
+    }
+}
+
+fn main() {
+    eprintln!("Accepting input from stdin");
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let deserialized: Document = serde_yaml::from_reader(reader).unwrap();
+
+    let args: Vec<String> = env::args().collect();
+    match args.get(1).map(String::as_str) {
+        Some("asciidoc") => {
+            let formatter = AsciiDocFormatter {};
+            print_document(deserialized, &formatter);
+        }
+        _ => {
+            let formatter = MarkdownGitHubFormatter {};
+            print_document(deserialized, &formatter);
         }
     }
 }
