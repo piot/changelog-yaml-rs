@@ -1,21 +1,19 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Peter Bjorklund. All rights reserved.
+/*----------------------------------------------------------------------------------------------------------
+ *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/changelog-yaml-rs
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
-
+ *--------------------------------------------------------------------------------------------------------*/
 use std::{env, io};
 
 use regex::Regex;
+mod formatters;
 
-use crate::ascii_doc_formatter::AsciiDocFormatter;
 use crate::formatter::{AdmonitionFormatter, AdmonitionType, EmojiFormatter, HeadingFormatter, LinkFormatter};
-use crate::markdown_github::MarkdownGitHubFormatter;
+use crate::formatters::ascii_doc::AsciiDocFormatter;
+use crate::formatters::markdown_github::MarkdownGitHubFormatter;
 use crate::yaml::Document;
 
 mod yaml;
 mod formatter;
-mod markdown_github;
-mod ascii_doc_formatter;
 
 const GITHUB_URL_PREFIX: &str = "https://github.com/";
 

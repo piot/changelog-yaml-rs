@@ -1,6 +1,6 @@
 [package]
 name = "changelog-yaml"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 license = "MIT"
 description = "generate a changelog from a yaml file"
@@ -11,5 +11,5 @@ repository = "https://github.com/piot/changelog-yaml-rs"
 [dependencies]
 serde = { version = "1.0.197", features = ["derive"] }
 serde_yaml = { version = "0.9.33" }
-indexmap =  {version = "2.2.5", features = ["serde"]}
-regex = "1.10.3"
+indexmap =  {version = "2.2.6", features = ["serde"]}
+regex = "1.10.4"

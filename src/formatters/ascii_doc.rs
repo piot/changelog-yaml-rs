@@ -1,7 +1,14 @@
+/*----------------------------------------------------------------------------------------------------------
+ *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/changelog-yaml-rs
+ *  Licensed under the MIT License. See LICENSE in the project root for license information.
+ *--------------------------------------------------------------------------------------------------------*/
 use std::collections::HashMap;
-use crate::formatter::{AdmonitionFormatter, AdmonitionType, EmojiFormatter, HeadingFormatter, LinkFormatter};
+
+use crate::formatter::{AdmonitionFormatter, AdmonitionType, EmojiFormatter, HeadingFormatter, LinkFormatter, SuperFormatter};
 
 pub(crate) struct AsciiDocFormatter {}
+
+impl SuperFormatter for AsciiDocFormatter {}
 
 fn admonition_type_to_asciidoc_keyword(admonition_type: AdmonitionType) -> &'static str {
     match admonition_type {
@@ -59,7 +66,7 @@ fn emoji_name_to_unicode(name: &str) -> u32 {
         ("soon", 0x1F51C),
     ].iter().cloned().collect();
 
-    *lookup.get(name).expect(&format!("cannot replace {}", name))
+    *lookup.get(name).unwrap_or_else(|| panic!("cannot replace {}", name))
 }
 
 impl EmojiFormatter for AsciiDocFormatter {

@@ -1,6 +1,12 @@
-use crate::formatter::{AdmonitionFormatter, AdmonitionType, EmojiFormatter, HeadingFormatter, LinkFormatter};
+/*----------------------------------------------------------------------------------------------------------
+ *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/changelog-yaml-rs
+ *  Licensed under the MIT License. See LICENSE in the project root for license information.
+ *--------------------------------------------------------------------------------------------------------*/
+use crate::formatter::{AdmonitionFormatter, AdmonitionType, EmojiFormatter, HeadingFormatter, LinkFormatter, SuperFormatter};
 
 pub(crate) struct MarkdownGitHubFormatter {}
+
+impl SuperFormatter for MarkdownGitHubFormatter {}
 
 fn admonition_type_to_github_name(admonition_type: AdmonitionType) -> &'static str {
     match admonition_type {
@@ -39,6 +45,6 @@ impl LinkFormatter for MarkdownGitHubFormatter {
 
 impl EmojiFormatter for MarkdownGitHubFormatter {
     fn emoji(&self, name: &str) -> String {
-       format!(":{}:", name)
+        format!(":{}:", name)
     }
 }
