@@ -1,5 +1,6 @@
 use crate::CategoryType;
 
+#[allow(unused)]
 pub fn github_icon(category_type: &CategoryType) -> &'static str {
     match category_type {
         CategoryType::Changed => ":hammer_and_wrench:",            // 🛠️

@@ -72,18 +72,12 @@ pub struct Section {
 
 
 #[derive(Debug, PartialEq, Deserialize)]
-pub struct Package {
-    pub notice: Option<String>,
-    pub changes: Changes,
-}
-
-#[derive(Debug, PartialEq, Deserialize)]
 pub struct Release {
     pub date: String,
     pub notice: Option<String>,
     pub repos: Option<IndexMap<String, Changes>>,
     pub sections: Option<IndexMap<String, Section>>,
-    pub packages: Option<IndexMap<String, Section>>,
+    pub packages: Option<IndexMap<String, Changes>>,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]

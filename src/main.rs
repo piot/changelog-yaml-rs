@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------------------*/
 use std::{env, io};
-use std::collections::HashMap;
 use std::path::PathBuf;
 use regex::Regex;
 mod formatters;
@@ -151,13 +150,6 @@ fn replace_notice<F: AdmonitionFormatter + LinkFormatter>(line: &str, formatter:
     let s = replace_admonition(line, formatter);
     replace_at_profile_link(&s, formatter)
 }
-
-#[derive(Debug, Clone)]
-struct CategoryInfo {
-    icon: &'static str,
-    description: &'static str,
-}
-
 
 fn description_from_category(category_type: &CategoryType) -> &'static str {
     match category_type {
@@ -323,16 +315,12 @@ fn print_document<F: AdmonitionFormatter + LinkFormatter + HeadingFormatter + Em
         }
 
         if let Some(packages) = release.packages {
-            for (package_name, section) in &packages {
+            for (package_name, changes) in &packages {
                 let repo_link = PathBuf::new().join("https://crates.io/crates/").join(package_name);
                 let link = formatter.link(&*package_name, repo_link.to_str().unwrap());
                 println!("\n{}\n", formatter.heading(3, &*link));
 
-                if let Some(notice) = &section.notice {
-                    println!("{}\n", replace_notice(notice.trim(), formatter));
-                }
-
-                print_changes(&deserialized.repo, &section.changes, formatter);
+                print_changes(&deserialized.repo, &changes, formatter);
             }
         }
 

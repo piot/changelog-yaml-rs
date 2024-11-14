@@ -27,4 +27,5 @@ pub(crate) trait HeadingFormatter {
     fn heading(&self, level: usize, name: &str) -> String;
 }
 
+#[allow(unused)]
 pub(crate) trait SuperFormatter: AdmonitionFormatter + LinkFormatter + HeadingFormatter + EmojiFormatter {}
