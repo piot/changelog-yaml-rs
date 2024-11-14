@@ -2,6 +2,8 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/changelog-yaml-rs
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------------------*/
+use crate::CategoryType;
+use crate::emoji::utf8_icon;
 use crate::formatter::{AdmonitionFormatter, AdmonitionType, EmojiFormatter, HeadingFormatter, LinkFormatter, SuperFormatter};
 
 pub(crate) struct MarkdownGitHubFormatter {}
@@ -44,7 +46,11 @@ impl LinkFormatter for MarkdownGitHubFormatter {
 }
 
 impl EmojiFormatter for MarkdownGitHubFormatter {
-    fn emoji(&self, name: &str) -> String {
-        format!(":{}:", name)
+    fn emoji(&self, category_type: &CategoryType) -> String {
+        utf8_icon(category_type).to_string()
+    }
+
+    fn emoji_tag(&self) -> String {
+        "🔖".to_string()
     }
 }

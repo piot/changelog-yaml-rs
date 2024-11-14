@@ -3,7 +3,8 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------------------*/
 use std::{env, io};
-
+use std::collections::HashMap;
+use std::path::PathBuf;
 use regex::Regex;
 mod formatters;
 
@@ -14,10 +15,11 @@ use crate::yaml::Document;
 
 mod yaml;
 mod formatter;
+mod emoji;
 
 const GITHUB_URL_PREFIX: &str = "https://github.com/";
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum CategoryType {
     Changed,
     Added,
@@ -156,238 +158,135 @@ struct CategoryInfo {
     description: &'static str,
 }
 
-fn info_from_category_name(name: CategoryType) -> CategoryInfo {
-    let lookup: std::collections::HashMap<CategoryType, CategoryInfo> = [
-        (
-            CategoryType::Added,
-            CategoryInfo {
-                icon: "star2",
-                description: "added",
-            },
-        ),
-        (
-            CategoryType::Changed,
-            CategoryInfo {
-                icon: "hammer_and_wrench",
-                description: "changed",
-            },
-        ),
-        (
-            CategoryType::Fixed,
-            CategoryInfo {
-                icon: "lady_beetle",
-                description: "fixed",
-            },
-        ),
-        (
-            CategoryType::Workaround,
-            CategoryInfo {
-                icon: "see_no_evil",
-                description: "workaround",
-            },
-        ),
-        (
-            CategoryType::Performance,
-            CategoryInfo {
-                icon: "zap",
-                description: "performance",
-            },
-        ),
-        (
-            CategoryType::Tests,
-            CategoryInfo {
-                icon: "vertical_traffic_light",
-                description: "test",
-            },
-        ),
-        (
-            CategoryType::Removed,
-            CategoryInfo {
-                icon: "fire",
-                description: "removed",
-            },
-        ),
-        (
-            CategoryType::Improved,
-            CategoryInfo {
-                icon: "art",
-                description: "improved",
-            },
-        ),
-        (
-            CategoryType::Breaking,
-            CategoryInfo {
-                icon: "triangular_flag_on_post",
-                description: "breaking",
-            },
-        ),
-        (
-            CategoryType::Deprecated,
-            CategoryInfo {
-                icon: "spider_web",
-                description: "deprecated",
-            },
-        ),
-        (
-            CategoryType::Refactored,
-            CategoryInfo {
-                icon: "recycle",
-                description: "refactor",
-            },
-        ),
-        (
-            CategoryType::Experimental,
-            CategoryInfo {
-                icon: "alembic",
-                description: "experimental",
-            },
-        ),
-        (
-            CategoryType::Docs,
-            CategoryInfo {
-                icon: "book",
-                description: "docs",
-            },
-        ),
-        (
-            CategoryType::Noted,
-            CategoryInfo {
-                icon: "beetle",
-                description: "known issue",
-            },
-        ),
-        (
-            CategoryType::Style,
-            CategoryInfo {
-                icon: "gem",
-                description: "style",
-            },
-        ),
-        (
-            CategoryType::Unreleased,
-            CategoryInfo {
-                icon: "soon",
-                description: "unreleased",
-            },
-        ),
-    ]
-        .iter()
-        .cloned()
-        .collect();
 
-    let info = lookup.get(&name).unwrap_or_else(|| {
-        panic!("unknown '{:?}'", name);
-    });
-
-    info.clone()
+fn description_from_category(category_type: &CategoryType) -> &'static str {
+    match category_type {
+        CategoryType::Added => "added",
+        CategoryType::Changed => "changed",
+        CategoryType::Fixed => "fixed",
+        CategoryType::Workaround => "workaround",
+        CategoryType::Performance => "performance",
+        CategoryType::Tests => "test",
+        CategoryType::Removed => "removed",
+        CategoryType::Improved => "improved",
+        CategoryType::Breaking => "breaking",
+        CategoryType::Deprecated => "deprecated",
+        CategoryType::Refactored => "refactor",
+        CategoryType::Experimental => "experimental",
+        CategoryType::Docs => "docs",
+        CategoryType::Noted => "known issue",
+        CategoryType::Style => "style",
+        CategoryType::Unreleased => "unreleased",
+        CategoryType::Security => "security", // Adding for completeness
+    }
 }
 
 fn print_line<F: LinkFormatter + EmojiFormatter>(
     repo_url: &str,
-    change_type: CategoryType,
-    s: String,
+    change_type: &CategoryType,
+    s: &String,
     formatter: &F,
 ) {
     let replaced = replace_line(s.trim(), repo_url, formatter);
-    let info = info_from_category_name(change_type.clone());
-    if change_type == CategoryType::Breaking {
-        println!("* {}[{}] {}", formatter.emoji(info.icon), &info.description, replaced);
+    let description = description_from_category(change_type);
+    if change_type == &CategoryType::Breaking {
+        println!("* {}[{}] {}", formatter.emoji(change_type), description, replaced);
     } else {
-        println!("* {} {}", formatter.emoji(info.icon), replaced);
+        println!("* {} {}", formatter.emoji(change_type), replaced);
     }
 }
 
 fn print_optional_list<F: LinkFormatter + EmojiFormatter>(
     repo_url: &str,
     change_type: CategoryType,
-    list: Option<Vec<String>>,
+    list: &Option<Vec<String>>,
     formatter: &F,
 ) {
     if let Some(items) = list {
         for item in items {
-            print_line(repo_url, change_type.clone(), item, formatter)
+            print_line(repo_url, &change_type, item, formatter)
         }
     }
 }
 
 
-fn print_changes<F: LinkFormatter + EmojiFormatter>(repo_url: &str, changes: yaml::Changes, formatter: &F) {
+fn print_changes<F: LinkFormatter + EmojiFormatter>(repo_url: &str, changes: &yaml::Changes, formatter: &F) {
     print_optional_list(
         repo_url,
         CategoryType::Unreleased,
-        changes.unreleased,
+        &changes.unreleased,
         formatter,
     );
 
     print_optional_list(
         repo_url,
         CategoryType::Breaking,
-        changes.breaking,
+        &changes.breaking,
         formatter,
     );
 
-    print_optional_list(repo_url, CategoryType::Added, changes.added, formatter);
+    print_optional_list(repo_url, CategoryType::Added, &changes.added, formatter);
 
-    print_optional_list(repo_url, CategoryType::Fixed, changes.fixed, formatter);
+    print_optional_list(repo_url, CategoryType::Fixed, &changes.fixed, formatter);
 
     print_optional_list(
         repo_url,
         CategoryType::Workaround,
-        changes.workaround,
+        &changes.workaround,
         formatter,
     );
 
-    print_optional_list(repo_url, CategoryType::Changed, changes.changed, formatter);
+    print_optional_list(repo_url, CategoryType::Changed, &changes.changed, formatter);
 
-    print_optional_list(repo_url, CategoryType::Removed, changes.removed, formatter);
+    print_optional_list(repo_url, CategoryType::Removed, &changes.removed, formatter);
 
     print_optional_list(
         repo_url,
         CategoryType::Improved,
-        changes.improved,
+        &changes.improved,
         formatter,
     );
 
-    print_optional_list(repo_url, CategoryType::Docs, changes.docs, formatter);
+    print_optional_list(repo_url, CategoryType::Docs, &changes.docs, formatter);
 
-    print_optional_list(repo_url, CategoryType::Tests, changes.tests, formatter);
+    print_optional_list(repo_url, CategoryType::Tests, &changes.tests, formatter);
 
     print_optional_list(
         repo_url,
         CategoryType::Refactored,
-        changes.refactored,
+        &changes.refactored,
         formatter,
     );
 
     print_optional_list(
         repo_url,
         CategoryType::Deprecated,
-        changes.deprecated,
+        &changes.deprecated,
         formatter,
     );
 
     print_optional_list(
         repo_url,
         CategoryType::Experimental,
-        changes.experimental,
+        &changes.experimental,
         formatter,
     );
 
-    print_optional_list(repo_url, CategoryType::Noted, changes.noted, formatter);
+    print_optional_list(repo_url, CategoryType::Noted, &changes.noted, formatter);
 
     print_optional_list(
         repo_url,
         CategoryType::Performance,
-        changes.performance,
+        &changes.performance,
         formatter,
     );
 
-    print_optional_list(repo_url, CategoryType::Style, changes.style, formatter);
+    print_optional_list(repo_url, CategoryType::Style, &changes.style, formatter);
 
     print_optional_list(
         repo_url,
         CategoryType::Security,
-        changes.security,
+        &changes.security,
         formatter,
     );
 }
@@ -402,7 +301,7 @@ fn print_document<F: AdmonitionFormatter + LinkFormatter + HeadingFormatter + Em
         );
 
         let heading = format!("{} {} ({})",
-                              formatter.emoji("bookmark"),
+                              formatter.emoji_tag(),
                               formatter.link(&release_version, &link_to_version),
                               release.date);
         println!("\n{}\n", formatter.heading(2, &heading));
@@ -419,7 +318,21 @@ fn print_document<F: AdmonitionFormatter + LinkFormatter + HeadingFormatter + Em
                     println!("{}\n", replace_notice(notice.trim(), formatter));
                 }
 
-                print_changes(&deserialized.repo, section.changes, formatter);
+                print_changes(&deserialized.repo, &section.changes, formatter);
+            }
+        }
+
+        if let Some(packages) = release.packages {
+            for (package_name, section) in &packages {
+                let repo_link = PathBuf::new().join("https://crates.io/crates/").join(package_name);
+                let link = formatter.link(&*package_name, repo_link.to_str().unwrap());
+                println!("\n{}\n", formatter.heading(3, &*link));
+
+                if let Some(notice) = &section.notice {
+                    println!("{}\n", replace_notice(notice.trim(), formatter));
+                }
+
+                print_changes(&deserialized.repo, &section.changes, formatter);
             }
         }
 
@@ -439,7 +352,7 @@ fn print_document<F: AdmonitionFormatter + LinkFormatter + HeadingFormatter + Em
 
                     println!("\n{}\n", formatter.heading(3, complete_line.trim()));
 
-                    print_changes(&info.repo, changes_in_repo, formatter);
+                    print_changes(&info.repo, &changes_in_repo, formatter);
                 }
             }
         } else {

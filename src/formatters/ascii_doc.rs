@@ -3,7 +3,8 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------------------*/
 use std::collections::HashMap;
-
+use crate::CategoryType;
+use crate::emoji::utf8_icon;
 use crate::formatter::{AdmonitionFormatter, AdmonitionType, EmojiFormatter, HeadingFormatter, LinkFormatter, SuperFormatter};
 
 pub(crate) struct AsciiDocFormatter {}
@@ -45,33 +46,13 @@ impl LinkFormatter for AsciiDocFormatter {
 }
 
 
-fn emoji_name_to_unicode(name: &str) -> u32 {
-    let lookup: HashMap<&str, u32> = [
-        ("bookmark", 0x1F516),
-        ("triangular_flag_on_post", 0x1f6a9),
-        ("star2", 0x1f31f),
-        ("hammer_and_wrench", 0x1f6e0),
-        ("lady_beetle", 0x1f41e),
-        ("see_no_evil", 0x1f648),
-        ("zap", 0x26a1),
-        ("vertical_traffic_light", 0x1f6a6),
-        ("fire", 0x1f525),
-        ("art", 0x1f3a8),
-        ("spider_web", 0x1f578),
-        ("recycle", 0x267b),
-        ("alembic", 0x2697),
-        ("book", 0x1F4D6),
-        ("noted", 0x1FAB2),
-        ("gem", 0x1F48E),
-        ("soon", 0x1F51C),
-    ].iter().cloned().collect();
-
-    *lookup.get(name).unwrap_or_else(|| panic!("cannot replace {}", name))
-}
-
 impl EmojiFormatter for AsciiDocFormatter {
-    fn emoji(&self, name: &str) -> String {
-        let unicode_int = emoji_name_to_unicode(name);
-        format!("&#x{:X};", unicode_int)
+    fn emoji(&self, category_type: &CategoryType) -> String {
+        let unicode_str = utf8_icon(category_type);
+        format!("&#x{};", unicode_str)
+    }
+
+    fn emoji_tag(&self) -> String {
+        "bookmark".to_string()
     }
 }
