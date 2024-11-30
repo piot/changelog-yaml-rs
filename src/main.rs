@@ -29,7 +29,7 @@ pub enum CategoryType {
     Fixed,
     Improved,
     Noted,
-    Performance,
+    Optimization,
     Refactored,
     Removed,
     Security,
@@ -37,6 +37,7 @@ pub enum CategoryType {
     Tests,
     Unreleased,
     Workaround,
+    Examples,
 }
 
 
@@ -157,7 +158,7 @@ fn description_from_category(category_type: &CategoryType) -> &'static str {
         CategoryType::Changed => "changed",
         CategoryType::Fixed => "fixed",
         CategoryType::Workaround => "workaround",
-        CategoryType::Performance => "performance",
+        CategoryType::Optimization => "performance",
         CategoryType::Tests => "test",
         CategoryType::Removed => "removed",
         CategoryType::Improved => "improved",
@@ -169,7 +170,8 @@ fn description_from_category(category_type: &CategoryType) -> &'static str {
         CategoryType::Noted => "known issue",
         CategoryType::Style => "style",
         CategoryType::Unreleased => "unreleased",
-        CategoryType::Security => "security", // Adding for completeness
+        CategoryType::Security => "security",
+        CategoryType::Examples => "examples",
     }
 }
 
@@ -268,8 +270,8 @@ fn print_changes<F: LinkFormatter + EmojiFormatter>(repo_url: &str, changes: &ya
 
     print_optional_list(
         repo_url,
-        CategoryType::Performance,
-        &changes.performance,
+        CategoryType::Optimization,
+        &changes.optimization,
         formatter,
     );
 
@@ -309,6 +311,7 @@ fn print_document<F: AdmonitionFormatter + LinkFormatter + HeadingFormatter + Em
                 if let Some(notice) = section.notice {
                     println!("{}\n", replace_notice(notice.trim(), formatter));
                 }
+                eprintln!("{:?}", section.changes);
 
                 print_changes(&deserialized.repo, &section.changes, formatter);
             }

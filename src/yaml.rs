@@ -43,8 +43,8 @@ pub struct Changes {
     // Refactored denotes changes made to improve code structure or organization without changing external behavior.
     pub refactored: Option<Vec<String>>,
 
-    // Performance includes changes aimed at improving the performance of the software.
-    pub performance: Option<Vec<String>>,
+    // Optimization includes changes aimed at improving the performance of the software.
+    pub optimization: Option<Vec<String>>,
 
     // Breaking denotes changes that may break backward compatibility with previous versions. Changed, but breaks the API compatibilty.
     pub breaking: Option<Vec<String>>,
@@ -62,6 +62,8 @@ pub struct Changes {
     // These changes typically represent work that is in progress or pending release in a future version.
     // Once a version is released, the changes listed in Unreleased are moved to the appropriate category (e.g., Added, Changed, Fixed, etc.).
     pub unreleased: Option<Vec<String>>,
+
+    pub examples: Option<Vec<String>>,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
